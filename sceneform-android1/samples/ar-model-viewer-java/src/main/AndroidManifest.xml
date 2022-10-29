@@ -20,6 +20,10 @@
         android:name="android.hardware.camera.ar"
         android:required="true" />
 
+    <!-- Geospatial API-->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <application
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
@@ -31,6 +35,11 @@
         <meta-data
             android:name="com.google.ar.core"
             android:value="required" />
+
+        <!-- API key for geospatial api -->
+        <meta-data
+            android:name="com.google.android.ar.API_KEY"
+            android:value="AIzaSyCHh3P0sn-MswhZnVyElnaNszyrx6YR2mw"/>
 
         <activity
             android:name=".MainActivity"

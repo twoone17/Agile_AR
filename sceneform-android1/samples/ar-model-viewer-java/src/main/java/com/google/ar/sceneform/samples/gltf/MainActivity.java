@@ -1,7 +1,11 @@
 package com.google.ar.sceneform.samples.gltf;
 
+
+import static android.webkit.ConsoleMessage.MessageLevel.LOG;
+
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.widget.Toast;
 
@@ -13,9 +17,12 @@ import androidx.fragment.app.FragmentOnAttachListener;
 
 import com.google.ar.core.Anchor;
 import com.google.ar.core.Config;
+import com.google.ar.core.Earth;
+import com.google.ar.core.GeospatialPose;
 import com.google.ar.core.HitResult;
 import com.google.ar.core.Plane;
 import com.google.ar.core.Session;
+import com.google.ar.core.TrackingState;
 import com.google.ar.sceneform.AnchorNode;
 import com.google.ar.sceneform.ArSceneView;
 import com.google.ar.sceneform.Node;
@@ -28,6 +35,7 @@ import com.google.ar.sceneform.rendering.ViewRenderable;
 import com.google.ar.sceneform.ux.ArFragment;
 import com.google.ar.sceneform.ux.BaseArFragment;
 import com.google.ar.sceneform.ux.TransformableNode;
+import com.google.firebase.FirebaseApp;
 
 import java.lang.ref.WeakReference;
 
@@ -40,12 +48,22 @@ public class MainActivity extends AppCompatActivity implements
     private ArFragment arFragment;
     private Renderable model;
     private ViewRenderable viewRenderable;
-
+    private Session session;
+    /**
+     * 생명주기 1번째)
+     * activity 생성, 3D 모델 load
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
+
+        /**
+         * firebase 연동
+         */
+        FirebaseApp.initializeApp(this);
+
         getSupportFragmentManager().addFragmentOnAttachListener(this);
 
         if (savedInstanceState == null) {
@@ -56,9 +74,26 @@ public class MainActivity extends AppCompatActivity implements
             }
         }
 
+        /** 의성
+         * 3D 모델을 load한다
+         */
         loadModels();
+
+        Earth earth = session.getEarth();
+        if (earth != null && earth.getTrackingState() == TrackingState.TRACKING) {
+            // Values obtained by the Geospatial API are valid as long as the Earth object has
+            // TrackingState Tracking.
+            GeospatialPose cameraGeospatialPose = earth.getCameraGeospatialPose();
+            System.out.println("cameraGeospatialPose = " + cameraGeospatialPose);
+            // TODO: use Geospatial APIs in this block.
+        }
     }
 
+
+    /**
+     * 생명주기 2번째)
+     * inflate한 frament가 activity에 붙여짐 (attach)
+     */
     @Override
     public void onAttachFragment(@NonNull FragmentManager fragmentManager, @NonNull Fragment fragment) {
         if (fragment.getId() == R.id.arFragment) {
@@ -68,14 +103,30 @@ public class MainActivity extends AppCompatActivity implements
             arFragment.setOnTapArPlaneListener(this);
         }
     }
-
+    /**
+    * 세션안에 들어갈 모드를 모은다, 합친다, 구성정보 설정한다고 생각
+    */
     @Override
     public void onSessionConfiguration(Session session, Config config) {
         if (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
             config.setDepthMode(Config.DepthMode.AUTOMATIC);
         }
+
+        if (session.isGeospatialModeSupported(Config.GeospatialMode.ENABLED)) {
+            config.setGeospatialMode(Config.GeospatialMode.ENABLED);
+            Log.v("isGeospatialModeSupported (지리정보) :","ENABLED(가능)");
+        }
+        else
+        {
+            Log.v("isGeospatialModeSupported (지리정보) :","실패");
+        }
+
     }
 
+    /**
+     * 생명주기 3번째)
+     * frament 안에 view를 만든다
+     */
     @Override
     public void onViewCreated(ArSceneView arSceneView) {
         arFragment.setOnViewCreatedListener(null);
@@ -84,7 +135,12 @@ public class MainActivity extends AppCompatActivity implements
         arSceneView.setFrameRateFactor(SceneView.FrameRate.FULL);
     }
 
+    /**
+     * plugin을 사용하는 것이 아닌 glb or gltf 파일, 혹은 url을 로드한다
+     */
+
     public void loadModels() {
+        //3D 모델 load
         WeakReference<MainActivity> weakActivity = new WeakReference<>(this);
         ModelRenderable.builder()
                 //.setSource(this, Uri.parse("https://storage.googleapis.com/ar-answers-in-search-models/static/Tiger/model.glb"))
@@ -94,6 +150,7 @@ public class MainActivity extends AppCompatActivity implements
                 .build()
                 .thenAccept(model -> {
                     MainActivity activity = weakActivity.get();
+                    //model에 3d 모델 저장
                     if (activity != null) {
                         activity.model = model;
                     }
@@ -103,6 +160,7 @@ public class MainActivity extends AppCompatActivity implements
                             this, "Unable to load model", Toast.LENGTH_LONG).show();
                     return null;
                 });
+        //3D 모델 위의 텍스트나 띄울 화면
         ViewRenderable.builder()
                 .setView(this, R.layout.view_model_title)
                 .build()

@@ -703,6 +703,7 @@ public abstract class BaseArFragment extends Fragment
                         onTapArPlaneListener.onTapPlane(hit, plane, motionEvent);
                         break;
                     }
+
                 }
             }
         }
